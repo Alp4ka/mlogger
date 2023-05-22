@@ -110,23 +110,22 @@ func (l *MainLogger) Panic(msg string, fields ...field.Field) {
 	logger.Panic().Msg(msg)
 }
 
-func L(ctxs ...context.Context) *MainLogger {
-	ctx := context.Background()
-	if len(ctxs) != 0 {
-		ctx = ctxs[0]
-	}
-
+func L(optionalCtx ...context.Context) *MainLogger {
 	var l *MainLogger
 	_globalMu.RLock()
 
-	l = &MainLogger{
-		_globalL.cfg,
-		_globalL.gw,
-		ctx,
-		_globalL.logger.
-			With().
-			Fields(field.FieldsFromCtx(ctx).Map()).
-			Logger(),
+	if len(optionalCtx) != 0 {
+		l = &MainLogger{
+			_globalL.cfg,
+			_globalL.gw,
+			optionalCtx[0],
+			_globalL.logger.
+				With().
+				Fields(field.FieldsFromCtx(optionalCtx[0]).Map()).
+				Logger(),
+		}
+	} else {
+		l = _globalL
 	}
 
 	_globalMu.RUnlock()

@@ -3,6 +3,7 @@ package mlogger
 import (
 	"context"
 	"fmt"
+	"github.com/Alp4ka/mlogger/contactpoints/matrix"
 	"github.com/Alp4ka/mlogger/field"
 	"github.com/Alp4ka/mlogger/misc"
 	"github.com/Alp4ka/mlogger/templates"
@@ -37,13 +38,13 @@ My test template!
 *{{ .LogMessage }}*`
 
 func Test_Main(test *testing.T) {
-
+	m := matrix.NewContactPoint(matrix.Config{})
 	cfg := Config{Level: misc.LevelInfo,
 		Template: templates.Config{Pattern: t, Use: true}}
 
 	f1 := field.Bool("test_bool", true)
 	ctx := field.WithContextFields(context.Background(), f1)
-	logger, err := NewProduction(ctx, cfg)
+	logger, err := NewProduction(ctx, cfg, m)
 	if err != nil {
 		panic(err.Error())
 	}
