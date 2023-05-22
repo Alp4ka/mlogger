@@ -9,7 +9,8 @@ Logger with additional contact points and message templates based on zerolog for
 1) Markdown
 
 # Usage 
-
+## Install
+```go get -u github.com/Alp4ka/mlogger```
 ## Example
 ```golang
 package main
