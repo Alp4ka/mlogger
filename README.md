@@ -9,6 +9,8 @@ Logger with additional contact points and message templates based on zerolog for
 1) Markdown
 
 # Usage 
+
+## Example
 ```golang
 package main
 
@@ -78,5 +80,9 @@ func main() {
 
 	time.Sleep(time.Second)
 }
-
 ```
+
+## Output
+![alt console output](https://github.com/Alp4ka/mlogger/blob/main/resources/log_template.png)
+
+![alt matrix output](https://github.com/Alp4ka/mlogger/blob/main/resources/matrix_template.png)
