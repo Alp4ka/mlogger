@@ -110,7 +110,12 @@ func (l *MainLogger) Panic(msg string, fields ...field.Field) {
 	logger.Panic().Msg(msg)
 }
 
-func L(ctx context.Context) *MainLogger {
+func L(ctxs ...context.Context) *MainLogger {
+	ctx := context.Background()
+	if len(ctxs) != 0 {
+		ctx = ctxs[0]
+	}
+
 	var l *MainLogger
 	_globalMu.RLock()
 
