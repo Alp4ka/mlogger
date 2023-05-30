@@ -13,6 +13,10 @@ import (
 	"sync"
 )
 
+const (
+	_callerTag = "caller"
+)
+
 var (
 	_globalMu sync.RWMutex
 	_globalL  *MainLogger
@@ -31,9 +35,10 @@ func (l *MainLogger) Info(msg string, fields ...field.Field) {
 		return
 	}
 
-	logger := l.logger.With().Fields(field.Fields(fields).Map()).Logger()
+	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
+	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
 	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelInfo, msg, fields...); err != nil {
+		if err := l.gw.Msg(l.ctx, misc.LevelInfo, msg, flds...); err != nil {
 			logger.Warn().Msg(err.Error())
 		}
 	}()
@@ -45,9 +50,10 @@ func (l *MainLogger) Debug(msg string, fields ...field.Field) {
 		return
 	}
 
-	logger := l.logger.With().Fields(field.Fields(fields).Map()).Logger()
+	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
+	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
 	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelDebug, msg, fields...); err != nil {
+		if err := l.gw.Msg(l.ctx, misc.LevelDebug, msg, flds...); err != nil {
 			logger.Warn().Msg(err.Error())
 		}
 	}()
@@ -59,9 +65,10 @@ func (l *MainLogger) Error(msg string, fields ...field.Field) {
 		return
 	}
 
-	logger := l.logger.With().Fields(field.Fields(fields).Map()).Logger()
+	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
+	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
 	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelError, msg, fields...); err != nil {
+		if err := l.gw.Msg(l.ctx, misc.LevelError, msg, flds...); err != nil {
 			logger.Warn().Msg(err.Error())
 		}
 	}()
@@ -73,9 +80,10 @@ func (l *MainLogger) Fatal(msg string, fields ...field.Field) {
 		return
 	}
 
-	logger := l.logger.With().Fields(field.Fields(fields).Map()).Logger()
+	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
+	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
 	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelFatal, msg, fields...); err != nil {
+		if err := l.gw.Msg(l.ctx, misc.LevelFatal, msg, flds...); err != nil {
 			logger.Warn().Msg(err.Error())
 		}
 	}()
@@ -87,13 +95,14 @@ func (l *MainLogger) Warn(msg string, fields ...field.Field) {
 		return
 	}
 
-	logger := l.logger.With().Fields(field.Fields(fields).Map()).Logger()
-	logger.Warn().Msg(msg)
+	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
+	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
 	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelWarn, msg, fields...); err != nil {
+		if err := l.gw.Msg(l.ctx, misc.LevelWarn, msg, flds...); err != nil {
 			logger.Warn().Msg(err.Error())
 		}
 	}()
+	logger.Warn().Msg(msg)
 }
 
 func (l *MainLogger) Panic(msg string, fields ...field.Field) {
@@ -101,9 +110,10 @@ func (l *MainLogger) Panic(msg string, fields ...field.Field) {
 		return
 	}
 
-	logger := l.logger.With().Fields(field.Fields(fields).Map()).Logger()
+	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
+	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
 	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelPanic, msg, fields...); err != nil {
+		if err := l.gw.Msg(l.ctx, misc.LevelPanic, msg, flds...); err != nil {
 			logger.Warn().Msg(err.Error())
 		}
 	}()
