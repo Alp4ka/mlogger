@@ -35,10 +35,10 @@ func Error(err error) Field {
 }
 
 func Int[T integers](key string, value T) Field {
-	return Field{key, int(value)}
+	return Field{key, int64(value)}
 }
 
-func Float64[T floats](key string, value T) Field {
+func Float[T floats](key string, value T) Field {
 	return Field{key, float64(value)}
 }
 
