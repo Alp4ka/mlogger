@@ -4,6 +4,7 @@ import (
 	"context"
 	cp "github.com/Alp4ka/mlogger/contactpoints"
 	"github.com/Alp4ka/mlogger/misc"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,9 +47,10 @@ func (g *ContactPoint) Msg(ctx context.Context, level misc.Level, msg string) er
 		return err
 	}
 
+
 	_, err = g.bot.Send(
 		g.cfg.ChatID,
-		msg,
+		cleanMsg(msg),
 		&tb.SendOptions{DisableWebPagePreview: true, ParseMode: tb.ModeMarkdownV2},
 	)
 
@@ -60,3 +62,13 @@ func NewContactPoint(cfg Config) *ContactPoint {
 }
 
 var _ cp.ContactPoint = (*ContactPoint)(nil)
+
+
+func cleanMsg(msg string) string {
+	r := strings.NewReplacer(
+    		".", "\\.",
+    		"-", "\\-",
+	)
+	
+	return r.Replace(msg)
+}
