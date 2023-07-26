@@ -47,7 +47,6 @@ func (g *ContactPoint) Msg(ctx context.Context, level misc.Level, msg string) er
 		return err
 	}
 
-
 	_, err = g.bot.Send(
 		g.cfg.ChatID,
 		cleanMsg(msg),
@@ -63,12 +62,16 @@ func NewContactPoint(cfg Config) *ContactPoint {
 
 var _ cp.ContactPoint = (*ContactPoint)(nil)
 
-
 func cleanMsg(msg string) string {
 	r := strings.NewReplacer(
-    		".", "\\.",
-    		"-", "\\-",
+		".", "\\.",
+		"-", "\\-",
+		"!", "\\!",
+		"+", "\\+",
+		"(", "\\(",
+		")", "\\)",
+		"_", "\\_",
 	)
-	
+
 	return r.Replace(msg)
 }
