@@ -61,7 +61,7 @@ func JSONEscapeSecure(key string, value []byte) Field {
 	// TODO(Gorkovets Roman): Crutch
 	const failPostfix = "_FAIL"
 
-	data, err := jsonsecurity.GlobalMasker().Mask(value)
+	data, err := jsonsecurity.GlobalMasker().Mask2(value)
 	if err != nil {
 		return Field{key + failPostfix, err.Error()}
 	}
