@@ -5,6 +5,7 @@ import (
 	"github.com/Alp4ka/mlogger/contactpoints"
 	"github.com/Alp4ka/mlogger/field"
 	"github.com/Alp4ka/mlogger/gateway"
+	"github.com/Alp4ka/mlogger/jsonsecurity"
 	"github.com/Alp4ka/mlogger/misc"
 	"github.com/Alp4ka/mlogger/templates"
 	"github.com/rs/zerolog"
@@ -24,6 +25,7 @@ var (
 
 type MainLogger struct {
 	cfg Config
+
 	gw  gateway.Gateway
 	ctx context.Context
 
@@ -150,6 +152,11 @@ func NewProduction(ctx context.Context, cfg Config, contacts ...contactpoints.Co
 	)
 
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	masker, err := jsonsecurity.NewMasker(cfg.JSONSecurity)
+	if err != nil {
+		return nil, err
+	}
+	jsonsecurity.ReplaceGlobals(masker)
 
 	if !cfg.Template.Use {
 		tmpl = templates.DefaultTemplate(misc.DefaultMode)

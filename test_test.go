@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Alp4ka/mlogger/contactpoints/matrix"
 	"github.com/Alp4ka/mlogger/field"
+	"github.com/Alp4ka/mlogger/jsonsecurity"
 	"github.com/Alp4ka/mlogger/misc"
 	"github.com/Alp4ka/mlogger/templates"
 	"testing"
@@ -57,4 +58,73 @@ func Test_Main(test *testing.T) {
 		field.Error(fmt.Errorf("test_error")))
 
 	time.Sleep(time.Second)
+}
+
+func Test_JSONField(test *testing.T) {
+	cfg := Config{Level: misc.LevelInfo}
+	logger, err := NewProduction(context.Background(), cfg)
+	if err != nil {
+		test.Errorf("Failed to init logger: %v", err)
+	}
+
+	logger.Info("json test msg", field.JSONEscape("my_json", []byte("{\"int_field\":123, \"string_field\":\"hello\"}")))
+}
+
+func Test_JSONSecureField(test *testing.T) {
+	cfg := Config{
+		Level: misc.LevelInfo,
+		JSONSecurity: jsonsecurity.Config{
+			Triggers: map[string]jsonsecurity.TriggerOpts{
+				"email":          {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelEmail},
+				"e-mail":         {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelEmail},
+				"otp":            {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPassword},
+				"otp-code":       {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPassword},
+				"otpcode":        {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPassword},
+				"security":       {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPassword},
+				"cvv":            {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCVV},
+				"cvc":            {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCVV},
+				"cardholder":     {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelName},
+				"cardholdername": {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelName},
+				"ifsccode":       {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPhoneNumber},
+				"phonenumber":    {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPhoneNumber},
+				"accountnumber":  {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"iban":           {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"clientname":     {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelName},
+				"card":           {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"upiid":          {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"cardnumber":     {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"recipient":      {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"credentials":    {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"password":       {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPassword},
+			},
+		},
+	}
+	logger, err := NewProduction(context.Background(), cfg)
+	if err != nil {
+		test.Errorf("Failed to init logger: %v", err)
+	}
+
+	logger.Info(
+		"json test msg",
+		field.JSONEscapeSecure(
+			"my_secure_json",
+			[]byte(`{
+  "email": "example123@example.com",
+  "UUID": "209e9061-72a7-48c1-a020-92ba6dcb6c71",
+  "clientOrderID": "12345qwerty",
+  "amount": 30000,
+  "password": "my_password",
+  "expireAt": 3600,
+  "comment": "some comment",
+  "currencyID": 1,
+  "callbackURL": "https://google.com",
+  "recipient": "123456789012334",
+  "clientInfo": {
+	"password": "my_password_here",
+    "client": "710",
+    "recipient_system": "string"
+  }
+}`),
+		),
+	)
 }

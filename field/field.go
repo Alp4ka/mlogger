@@ -1,6 +1,9 @@
 package field
 
-import "context"
+import (
+	"context"
+	"github.com/Alp4ka/mlogger/jsonsecurity"
+)
 
 var ContextLogFields = struct{}{}
 
@@ -48,6 +51,21 @@ func String(key string, value string) Field {
 
 func Bool(key string, value bool) Field {
 	return Field{key, value}
+}
+
+func JSONEscape(key string, value []byte) Field {
+	return Field{key, value}
+}
+
+func JSONEscapeSecure(key string, value []byte) Field {
+	// TODO(Gorkovets Roman): Crutch
+	const failPostfix = "_FAIL"
+
+	data, err := jsonsecurity.GlobalMasker().Mask(value)
+	if err != nil {
+		return Field{key + failPostfix, err.Error()}
+	}
+	return JSONEscape(key, data)
 }
 
 func Any(key string, value any) Field {
