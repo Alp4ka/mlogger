@@ -56,7 +56,7 @@ func NewMasker(cfg Config) (*Masker, error) {
 	}, nil
 }
 
-// Deprecated: Mask masks data given in parameters using specified config.
+// Mask masks data given in parameters using specified config.
 //
 // Example:
 //
@@ -66,84 +66,13 @@ func NewMasker(cfg Config) (*Masker, error) {
 //
 // Output = `{"password": "*********", "email": "e******@example.com"}`
 // TODO(Gorkovets Roman): Definitely needs rework due to multiple serialization and deserialization. Inefficient af.
-// TODO(Gorkovets Roman): Decompose.
 func (m *Masker) Mask(data []byte) ([]byte, error) {
-	mapData := make(map[string]interface{}, 0)
-
-	err := json.Unmarshal(data, &mapData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal: %+v", err)
-	}
-
-	// Collecting lowercase keys and making copy of initial map into a resulting one.
-	mapResult := make(map[string]interface{}, len(mapData))
-	mapLCData := make(map[string][]modifiedKey, len(mapData))
-	for k, v := range mapData {
-		lowerK := strings.ToLower(k)
-		if _, ok := mapLCData[lowerK]; !ok {
-			mapLCData[lowerK] = []modifiedKey{{Modified: lowerK, Original: k}}
-		} else {
-			mapLCData[lowerK] = append(mapLCData[lowerK], modifiedKey{Modified: lowerK, Original: k})
-		}
-		mapResult[k] = v
-	}
-
-	// Iterating over triggers.
-	var (
-		triggerErr error
-		res        MaskResult
-	)
-	for trigger, opts := range m.cfg.Triggers {
-		if opts.ShouldAppear {
-			if opts.CaseSensitive {
-				if val, ok := mapData[trigger]; ok {
-					res, triggerErr = maskLabel(opts.MaskMethod, trigger, val)
-					if triggerErr != nil {
-						return nil, fmt.Errorf("fail while masking trigger '%s': %+v", trigger, err)
-					}
-					mapResult[res.Key] = res.Value
-				}
-			} else {
-				if modVals, ok := mapLCData[strings.ToLower(trigger)]; ok {
-					for _, modVal := range modVals {
-						res, triggerErr = maskLabel(opts.MaskMethod, modVal.Original, mapData[modVal.Original])
-						if triggerErr != nil {
-							return nil, fmt.Errorf("fail while masking trigger '%s': %+v", trigger, err)
-						}
-						mapResult[res.Key] = res.Value
-					}
-				}
-			}
-		} else {
-			if opts.CaseSensitive {
-				delete(mapResult, trigger)
-			} else {
-				if modVals, ok := mapLCData[strings.ToLower(trigger)]; ok {
-					for _, modVal := range modVals {
-						delete(mapResult, modVal.Original)
-					}
-				}
-			}
-		}
-	}
-
-	bytes, err := json.Marshal(mapResult)
-	if err != nil {
-		return nil, fmt.Errorf("fail while marshalling resulting map: %+v", err)
-	}
-
-	return bytes, nil
-}
-
-func (m *Masker) Mask2(data []byte) ([]byte, error) {
 	mapData := make(map[string]interface{}, 0)
 
 	err := json.Unmarshal(data, &mapData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal initial data: %+v", err)
 	}
-
-	//mapResult := make(map[string]interface{}, len(mapData))
 
 	result, err := m.walkthrough(mapData, 0)
 	if err != nil {
@@ -159,6 +88,8 @@ func (m *Masker) Mask2(data []byte) ([]byte, error) {
 	return bytes, nil
 }
 
+// walkthrough falls down to the json structure considering every key-value pair may be represented as map[string]interface{}
+// It gets trigger options in config using key and replaces initial value using the value from walkthrough result.
 func (m *Masker) walkthrough(layer interface{}, currentDepth int) (interface{}, error) {
 	if currentDepth > m.cfg.MaxDepth {
 		return nil, fmt.Errorf("max recursion depth reached: %d", m.cfg.MaxDepth)
@@ -177,7 +108,7 @@ func (m *Masker) walkthrough(layer interface{}, currentDepth int) (interface{}, 
 				continue
 			}
 
-			err = mask(t, k, v, triggerOpt)
+			err = mask(t, k, triggerOpt)
 			if err != nil {
 				return nil, fmt.Errorf("fail while masking key '%s', depth '%d': %+v", k, currentDepth, err)
 			}
@@ -186,6 +117,7 @@ func (m *Masker) walkthrough(layer interface{}, currentDepth int) (interface{}, 
 	return layer, nil
 }
 
+// getTriggerOpts returns TriggerOpts for specified label-string.
 func (m *Masker) getTriggerOpts(key string) (TriggerOpts, bool) {
 	lowerKey := strings.ToLower(key)
 	if triggers, ok := m.lowercaseTriggers[lowerKey]; ok && len(triggers) > 0 {
@@ -201,18 +133,8 @@ func (m *Masker) getTriggerOpts(key string) (TriggerOpts, bool) {
 	return TriggerOpts{}, false
 }
 
-func maskLabel(label MaskerLabel, key string, value interface{}) (MaskResult, error) {
-	_mapLabelsMu.RLock()
-	defer _mapLabelsMu.RUnlock()
-
-	if masker, ok := _mapLabels[label]; ok {
-		return masker(key, value)
-	}
-
-	return defaultMasker(key, value)
-}
-
-func mask(dict map[string]interface{}, key string, value interface{}, opts TriggerOpts) error {
+// mask masks the key-value pair located in dict using provided TriggerOpts.
+func mask(dict map[string]interface{}, key string, opts TriggerOpts) error {
 	if !opts.ShouldAppear {
 		fmt.Println(123)
 		delete(dict, key)
@@ -229,7 +151,7 @@ func mask(dict map[string]interface{}, key string, value interface{}, opts Trigg
 		masker = defaultMasker
 	}
 
-	ret, err := masker(key, value)
+	ret, err := masker(key, dict[key])
 	if err != nil {
 		return err
 	}
