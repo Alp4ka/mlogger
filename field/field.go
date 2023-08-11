@@ -11,12 +11,22 @@ var ContextLogFields = struct{}{}
 type Field struct {
 	Key   string
 	Value any
+
+	err error
+}
+
+// Error returns an error field. It's used to store the error occurred while parsing, creating the field.
+func (f *Field) Error() error {
+	return f.err
 }
 
 // Fields alias for []Field as it's more comfortable to use it this way
 type Fields []Field
 
+// Map maps field as key-value pairs in order to satisfy zerolog With() instructions.
 func (fields Fields) Map() map[string]any {
+	const failPostfix = "_FAIL"
+
 	result := make(map[string]any)
 
 	if fields == nil {
@@ -25,6 +35,10 @@ func (fields Fields) Map() map[string]any {
 
 	for _, field := range fields {
 		result[field.Key] = field.Value
+
+		if field.Error() != nil {
+			result[field.Key+failPostfix] = field.Error()
+		}
 	}
 
 	return result
@@ -34,42 +48,39 @@ func (fields Fields) Map() map[string]any {
 
 func Error(err error) Field {
 	const key = "error"
-	return Field{key, err}
+	return Field{key, err, nil}
 }
 
 func Int[T integers](key string, value T) Field {
-	return Field{key, int64(value)}
+	return Field{key, int64(value), nil}
 }
 
 func Float[T floats](key string, value T) Field {
-	return Field{key, float64(value)}
+	return Field{key, float64(value), nil}
 }
 
 func String(key string, value string) Field {
-	return Field{key, value}
+	return Field{key, value, nil}
 }
 
 func Bool(key string, value bool) Field {
-	return Field{key, value}
+	return Field{key, value, nil}
 }
 
 func JSONEscape(key string, value []byte) Field {
-	return Field{key, value}
+	return Field{key, value, nil}
 }
 
 func JSONEscapeSecure(key string, value []byte) Field {
-	// TODO(Gorkovets Roman): Crutch
-	const failPostfix = "_FAIL"
-
 	data, err := jsonsecurity.GlobalMasker().Mask2(value)
 	if err != nil {
-		return Field{key + failPostfix, err.Error()}
+		return Field{key, nil, err}
 	}
 	return JSONEscape(key, data)
 }
 
 func Any(key string, value any) Field {
-	return Field{key, value}
+	return Field{key, value, nil}
 }
 
 // FieldsFromCtx extract fields from context. If ctx is nil, use context.Background()
