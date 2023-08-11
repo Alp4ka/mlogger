@@ -7,7 +7,8 @@ import (
 
 var ContextLogFields = struct{}{}
 
-// Field TODO Сделать как в запе, чтобы не через рефлексию все работало в конечном итоге.
+// Field stores key-value pairs in order to map them into log structure.
+// TODO(Gorkovets Roman): Make Value field for al supported types in order to avoid inappropriate use of any.
 type Field struct {
 	Key   string
 	Value any
@@ -46,31 +47,45 @@ func (fields Fields) Map() map[string]any {
 
 // CUSTOM FIELDS
 
+// Error used for storing errors. It displays as `{"error": "database error: timeout"}`
 func Error(err error) Field {
 	const key = "error"
 	return Field{key, err, nil}
 }
 
+// Int used for storing integer values.
 func Int[T integers](key string, value T) Field {
 	return Field{key, int64(value), nil}
 }
 
+// Float used for storing floating-point values.
 func Float[T floats](key string, value T) Field {
 	return Field{key, float64(value), nil}
 }
 
+// String used for storing string values.
 func String(key string, value string) Field {
 	return Field{key, value, nil}
 }
 
+// Bool used for storing boolean values.
 func Bool(key string, value bool) Field {
 	return Field{key, value, nil}
 }
 
+// JSONEscape used for storing json string with escaping characters.
 func JSONEscape(key string, value []byte) Field {
 	return Field{key, value, nil}
 }
 
+// JSONEscapeSecure the same as JSONEscape but also masks the key-value pairs specified in config.
+// Example:
+//
+// Data = `{\"password\": \"qwerty123\", \"email\": \"example@example.com\"}`
+//
+// Using PASSWORD label for "password" and EMAIL for "email" we will reach the next result:
+//
+// Output = `{\"password\": \"*********\", \"email\": \"e******@example.com\"}`
 func JSONEscapeSecure(key string, value []byte) Field {
 	data, err := jsonsecurity.GlobalMasker().Mask(value)
 	if err != nil {
@@ -79,6 +94,7 @@ func JSONEscapeSecure(key string, value []byte) Field {
 	return JSONEscape(key, data)
 }
 
+// Any used for storing values of type any.
 func Any(key string, value any) Field {
 	return Field{key, value, nil}
 }
@@ -96,6 +112,7 @@ func FieldsFromCtx(ctx context.Context) Fields {
 	return fields
 }
 
+// WithContextFields appends fields to provided context.
 func WithContextFields(ctx context.Context, fields ...Field) context.Context {
 	return context.WithValue(ctx, ContextLogFields, append(FieldsFromCtx(ctx), fields...))
 }
