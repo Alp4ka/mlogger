@@ -72,7 +72,7 @@ func JSONEscape(key string, value []byte) Field {
 }
 
 func JSONEscapeSecure(key string, value []byte) Field {
-	data, err := jsonsecurity.GlobalMasker().Mask2(value)
+	data, err := jsonsecurity.GlobalMasker().Mask(value)
 	if err != nil {
 		return Field{key, nil, err}
 	}
