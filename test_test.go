@@ -204,6 +204,72 @@ func Test_JSONSecureFieldParallel(test *testing.T) {
 	logger.Info("got it")
 }
 
+func Test_JSONSecureFieldArray(test *testing.T) {
+	cfg := Config{
+		Level: misc.LevelInfo,
+		JSONSecurity: jsonsecurity.Config{
+			MaxDepth: 10,
+			Triggers: map[string]jsonsecurity.TriggerOpts{
+				"email":          {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelEmail},
+				"e-mail":         {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelEmail},
+				"otp":            {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPassword},
+				"otp-code":       {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPassword},
+				"otpcode":        {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPassword},
+				"security":       {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPassword},
+				"cvv":            {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCVV},
+				"cvc":            {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCVV},
+				"cardholder":     {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelName},
+				"cardholdername": {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelName},
+				"ifsccode":       {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPhoneNumber},
+				"phonenumber":    {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPhoneNumber},
+				"accountnumber":  {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"iban":           {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"clientname":     {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelName},
+				"card":           {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"upiid":          {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"cardnumber":     {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"recipient":      {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"credentials":    {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelCardNumber},
+				"password":       {CaseSensitive: false, ShouldAppear: true, MaskMethod: jsonsecurity.MaskerLabelPassword},
+			},
+		},
+	}
+	logger, err := NewProduction(context.Background(), cfg)
+	if err != nil {
+		test.Errorf("Failed to init logger: %v", err)
+	}
+
+	logger.Info(
+		"json test msg",
+		field.JSONEscapeSecure(
+			"my_secure_json",
+			[]byte(`[{"password": "qwerty123"}, {"email": "kkkk@mail.ru"}, {"field": 123}, 6, "password"]`),
+		),
+	)
+
+	logger.Info("got it")
+}
+
+func Test_JSONSecureFieldEmpty(test *testing.T) {
+	cfg := Config{
+		Level: misc.LevelInfo,
+	}
+	logger, err := NewProduction(context.Background(), cfg)
+	if err != nil {
+		test.Errorf("Failed to init logger: %v", err)
+	}
+
+	logger.Info(
+		"json test msg",
+		field.JSONEscapeSecure(
+			"my_secure_json",
+			[]byte(``),
+		),
+	)
+
+	logger.Info("got it")
+}
+
 func Test_Parallel(test *testing.T) {
 	cfg := Config{
 		Level: misc.LevelInfo,
