@@ -67,20 +67,19 @@ func NewMasker(cfg Config) (*Masker, error) {
 // Output = `{"password": "*********", "email": "e******@example.com"}`
 // TODO(Gorkovets Roman): Definitely needs rework due to multiple serialization and deserialization. Inefficient af.
 func (m *Masker) Mask(data []byte) ([]byte, error) {
-	mapData := make(map[string]interface{}, 0)
+	var dataAny any
 
-	err := json.Unmarshal(data, &mapData)
+	err := json.Unmarshal(data, &dataAny)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal initial data: %+v", err)
 	}
 
-	result, err := m.walkthrough(mapData, 0)
+	result, err := m.walkthrough(dataAny, 0)
 	if err != nil {
 		return nil, fmt.Errorf("walkthrough error: %+v", err)
 	}
 
-	mapResult := result.(map[string]interface{})
-	bytes, err := json.Marshal(mapResult)
+	bytes, err := json.Marshal(result)
 	if err != nil {
 		return nil, fmt.Errorf("fail while marshalling result map: %+v", err)
 	}
@@ -99,6 +98,7 @@ func (m *Masker) walkthrough(layer interface{}, currentDepth int) (interface{}, 
 	case map[string]interface{}:
 		for k, v := range t {
 			var err error
+
 			triggerOpt, ok := m.getTriggerOpts(k)
 			if !ok {
 				t[k], err = m.walkthrough(v, currentDepth+1)
@@ -113,6 +113,16 @@ func (m *Masker) walkthrough(layer interface{}, currentDepth int) (interface{}, 
 				return nil, fmt.Errorf("fail while masking key '%s', depth '%d': %+v", k, currentDepth, err)
 			}
 		}
+	case []interface{}:
+		for i, v := range t {
+			var err error
+
+			t[i], err = m.walkthrough(v, currentDepth+1)
+			if err != nil {
+				return nil, fmt.Errorf("fail while masking array index '%d', depth '%d': %+v", i, currentDepth, err)
+			}
+		}
+	default:
 	}
 	return layer, nil
 }
@@ -136,17 +146,16 @@ func (m *Masker) getTriggerOpts(key string) (TriggerOpts, bool) {
 // mask masks the key-value pair located in dict using provided TriggerOpts.
 func mask(dict map[string]interface{}, key string, opts TriggerOpts) error {
 	if !opts.ShouldAppear {
-		fmt.Println(123)
 		delete(dict, key)
 		return nil
 	}
 
-	_mapLabelsMu.RLock()
-	defer _mapLabelsMu.RUnlock()
-
 	var err error
 
+	_mapLabelsMu.RLock()
 	masker, ok := _mapLabels[opts.MaskMethod]
+	_mapLabelsMu.RUnlock()
+
 	if !ok {
 		masker = defaultMasker
 	}
