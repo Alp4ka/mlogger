@@ -56,7 +56,8 @@ func Test_Main(test *testing.T) {
 		"test message",
 		field.Int("test_int", 123),
 		field.String("test_string", "hello world!"),
-		field.Error(fmt.Errorf("test_error")))
+		field.Error(fmt.Errorf("test_error")),
+		field.CallerFunc("caller_1"))
 
 	time.Sleep(time.Second)
 }

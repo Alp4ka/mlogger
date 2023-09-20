@@ -1,6 +1,6 @@
 module github.com/Alp4ka/mlogger
 
-go 1.20
+go 1.21
 
 require (
 	github.com/rs/zerolog v1.29.1

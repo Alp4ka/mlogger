@@ -8,10 +8,12 @@ import (
 	"strings"
 )
 
-func GetCaller() string {
-	const undefined = "undefined"
+func GetCallerWithLevel(level int) string {
+	const (
+		undefined = "undefined"
+	)
 
-	_, fileName, lineNum, ok := runtime.Caller(2)
+	_, fileName, lineNum, ok := runtime.Caller(level)
 	if !ok {
 		return undefined
 	}

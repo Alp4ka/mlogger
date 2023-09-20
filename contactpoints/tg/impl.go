@@ -31,7 +31,7 @@ func (g *ContactPoint) init() error {
 	return err
 }
 
-func (g *ContactPoint) Msg(ctx context.Context, level misc.Level, msg string) error {
+func (g *ContactPoint) Msg(_ context.Context, level misc.Level, msg string) error {
 	if level < g.cfg.Level {
 		return nil
 	}

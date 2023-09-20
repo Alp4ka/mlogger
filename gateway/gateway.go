@@ -15,13 +15,13 @@ type Gateway struct {
 	contacts []contactpoints.ContactPoint
 }
 
-func (g Gateway) Msg(ctx context.Context, level misc.Level, msg string, fields ...field.Field) error {
+func (g Gateway) Msg(ctx context.Context, source string, level misc.Level, msg string, fields ...field.Field) error {
 	rendered, err := g.template.Render(
 		&templates.Placeholder{
 			LogTime:          time.Now(),
 			LogLevel:         level,
-			LogSource:        "None",
-			LogContextFields: field.FieldsFromCtx(ctx),
+			LogSource:        source,
+			LogContextFields: field.FieldsFromContext(ctx),
 			LogFields:        fields,
 			LogMessage:       msg,
 		},

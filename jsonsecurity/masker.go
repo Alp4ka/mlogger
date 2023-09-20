@@ -66,25 +66,25 @@ func NewMasker(cfg Config) (*Masker, error) {
 //
 // Output = `{"password": "*********", "email": "e******@example.com"}`
 // TODO(Gorkovets Roman): Definitely needs rework due to multiple serialization and deserialization. Inefficient af.
-func (m *Masker) Mask(data []byte) ([]byte, error) {
+func (m *Masker) Mask(data string) (string, error) {
 	var dataAny any
 
-	err := json.Unmarshal(data, &dataAny)
+	err := json.Unmarshal([]byte(data), &dataAny)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal initial data: %+v", err)
+		return "", fmt.Errorf("failed to unmarshal initial data: %+v", err)
 	}
 
 	result, err := m.walkthrough(dataAny, 0)
 	if err != nil {
-		return nil, fmt.Errorf("walkthrough error: %+v", err)
+		return "", fmt.Errorf("walkthrough error: %+v", err)
 	}
 
 	bytes, err := json.Marshal(result)
 	if err != nil {
-		return nil, fmt.Errorf("fail while marshalling result map: %+v", err)
+		return "", fmt.Errorf("fail while marshalling result map: %+v", err)
 	}
 
-	return bytes, nil
+	return string(bytes), nil
 }
 
 // walkthrough falls down to the json structure considering every key-value pair may be represented as map[string]interface{}

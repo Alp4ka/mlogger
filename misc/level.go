@@ -3,7 +3,7 @@ package misc
 type Level int
 
 const (
-	LevelNone Level = iota
+	LevelNone = iota
 	LevelDebug
 	LevelInfo
 	LevelWarn
@@ -16,10 +16,10 @@ var _lvlToString = map[Level]string{
 	LevelNone:  "None",
 	LevelDebug: "Debug",
 	LevelInfo:  "Info",
-	LevelError: "Error",
-	LevelFatal: "Fatal",
-	LevelPanic: "Panic",
 	LevelWarn:  "Warn",
+	LevelError: "Error",
+	LevelPanic: "Panic",
+	LevelFatal: "Fatal",
 }
 
 func (l Level) String() string {
@@ -27,4 +27,24 @@ func (l Level) String() string {
 		return val
 	}
 	return _lvlToString[LevelNone]
+}
+
+func (l Level) LessThan(level Level) bool {
+	return l < level
+}
+
+func (l Level) LessOrEqualThan(level Level) bool {
+	return l <= level
+}
+
+func (l Level) BiggerThan(level Level) bool {
+	return l > level
+}
+
+func (l Level) BiggerOrEqualThan(level Level) bool {
+	return l >= level
+}
+
+func (l Level) EqualTo(level Level) bool {
+	return l == level
 }

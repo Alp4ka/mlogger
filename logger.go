@@ -8,118 +8,79 @@ import (
 	"github.com/Alp4ka/mlogger/jsonsecurity"
 	"github.com/Alp4ka/mlogger/misc"
 	"github.com/Alp4ka/mlogger/templates"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/pkgerrors"
+	"log/slog"
 	"os"
 	"sync"
 )
 
 const (
-	_callerTag = "caller"
+	callerFuncLevelShift = 7
 )
 
 var (
 	_globalMu sync.RWMutex
 	_globalL  *MainLogger
+
+	_defaultWriter = os.Stdout
 )
 
 type MainLogger struct {
-	cfg Config
+	cfg *Config
 
-	gw  gateway.Gateway
-	ctx context.Context
+	gw     gateway.Gateway
+	ctx    context.Context
+	masker *jsonsecurity.Masker
 
-	logger zerolog.Logger
+	logger *slog.Logger
 }
 
-func (l *MainLogger) Info(msg string, fields ...field.Field) {
-	if misc.LevelInfo < l.cfg.Level {
+func (l *MainLogger) log(level misc.Level, msg string, fields ...field.Field) {
+	if level.LessThan(l.cfg.Level) {
 		return
 	}
 
-	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
-	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
+	// log is located
+	flds := field.FieldsFromContext(field.WithContextFields(l.ctx, fields...)).
+		WithOptions(field.OptionCallerFunc(callerFuncLevelShift)).
+		Prepare(l.masker)
+
+	attrs := field.UnpackFieldsToSlogAttrs(flds)
+
 	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelInfo, msg, flds...); err != nil {
-			logger.Warn().Msg(err.Error())
+		if err := l.gw.Msg(l.ctx, l.cfg.Source, misc.LevelDebug, msg, flds...); err != nil {
+			l.logger.LogAttrs(l.ctx, misc.LevelWarn, err.Error(), attrs...)
 		}
 	}()
-	logger.Info().Msg(msg)
+
+	l.logger.LogAttrs(l.ctx, misc.SlogLevel(level), msg, attrs...)
+}
+
+func (l *MainLogger) Log(level misc.Level, msg string, fields ...field.Field) {
+	l.log(level, msg, fields...)
 }
 
 func (l *MainLogger) Debug(msg string, fields ...field.Field) {
-	if misc.LevelDebug < l.cfg.Level {
-		return
-	}
-
-	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
-	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
-	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelDebug, msg, flds...); err != nil {
-			logger.Warn().Msg(err.Error())
-		}
-	}()
-	logger.Debug().Msg(msg)
+	l.log(misc.LevelDebug, msg, fields...)
 }
 
-func (l *MainLogger) Error(msg string, fields ...field.Field) {
-	if misc.LevelError < l.cfg.Level {
-		return
-	}
-
-	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
-	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
-	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelError, msg, flds...); err != nil {
-			logger.Warn().Msg(err.Error())
-		}
-	}()
-	logger.Error().Msg(msg)
-}
-
-func (l *MainLogger) Fatal(msg string, fields ...field.Field) {
-	if misc.LevelFatal < l.cfg.Level {
-		return
-	}
-
-	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
-	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
-	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelFatal, msg, flds...); err != nil {
-			logger.Warn().Msg(err.Error())
-		}
-	}()
-	logger.Fatal().Msg(msg)
+func (l *MainLogger) Info(msg string, fields ...field.Field) {
+	l.log(misc.LevelInfo, msg, fields...)
 }
 
 func (l *MainLogger) Warn(msg string, fields ...field.Field) {
-	if misc.LevelWarn < l.cfg.Level {
-		return
-	}
+	l.log(misc.LevelWarn, msg, fields...)
+}
 
-	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
-	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
-	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelWarn, msg, flds...); err != nil {
-			logger.Warn().Msg(err.Error())
-		}
-	}()
-	logger.Warn().Msg(msg)
+func (l *MainLogger) Error(msg string, fields ...field.Field) {
+	l.log(misc.LevelError, msg, fields...)
+}
+
+func (l *MainLogger) Fatal(msg string, fields ...field.Field) {
+	l.log(misc.LevelFatal, msg, fields...)
 }
 
 func (l *MainLogger) Panic(msg string, fields ...field.Field) {
-	if misc.LevelPanic < l.cfg.Level {
-		return
-	}
-
-	flds := append(fields, field.String(_callerTag, misc.GetCaller()))
-	logger := l.logger.With().Fields(field.Fields(flds).Map()).Logger()
-	go func() {
-		if err := l.gw.Msg(l.ctx, misc.LevelPanic, msg, flds...); err != nil {
-			logger.Warn().Msg(err.Error())
-		}
-	}()
-	logger.Panic().Msg(msg)
+	l.log(misc.LevelPanic, msg, fields...)
 }
 
 func L(optionalCtx ...context.Context) *MainLogger {
@@ -130,11 +91,9 @@ func L(optionalCtx ...context.Context) *MainLogger {
 		l = &MainLogger{
 			_globalL.cfg,
 			_globalL.gw,
-			optionalCtx[0],
-			_globalL.logger.
-				With().
-				Fields(field.FieldsFromCtx(optionalCtx[0]).Map()).
-				Logger(),
+			field.WithContextFields(_globalL.ctx, field.FieldsFromContext(optionalCtx[0])...),
+			_globalL.masker,
+			_globalL.logger,
 		}
 	} else {
 		l = _globalL
@@ -151,35 +110,39 @@ func NewProduction(ctx context.Context, cfg Config, contacts ...contactpoints.Co
 		err  error
 	)
 
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	masker, err := jsonsecurity.NewMasker(cfg.JSONSecurity)
 	if err != nil {
 		return nil, err
 	}
-	jsonsecurity.ReplaceGlobals(masker)
 
 	if !cfg.Template.Use {
 		tmpl = templates.DefaultTemplate(misc.DefaultMode)
 	} else if tmpl, err = templates.FromPattern(cfg.Template.Pattern); err != nil || tmpl == nil {
 		return nil, err
 	}
+	gw = gateway.CreateGateway().WithTemplate(tmpl).WithContactPoints(true, contacts...)
 
-	gw = gateway.
-		CreateGateway().
-		WithTemplate(tmpl).
-		WithContactPoints(true, contacts...)
+	if cfg.Writer == nil {
+		cfg.Writer = _defaultWriter
+	}
+
+	fields := field.FieldsFromContext(ctx)
+	if cfg.Source != "" {
+		fields = fields.WithOptions(field.OptionSource(cfg.Source))
+	}
+	fields = fields.Prepare(masker)
 
 	return &MainLogger{
-		cfg,
+		&cfg,
 		gw,
-		ctx,
-		zerolog.
-			New(os.Stdout).
-			Level(zerolog.InfoLevel).
-			With().
-			Fields(field.FieldsFromCtx(ctx).Map()).
-			Logger(),
+		field.WithContextFields(ctx, fields...),
+		masker,
+		slog.New(slog.NewJSONHandler(cfg.Writer, &slog.HandlerOptions{
+			Level:       misc.SlogLevel(cfg.Level),
+			ReplaceAttr: misc.SlogReplaceAttr,
+		})),
 	}, nil
+
 }
 
 func ReplaceGlobals(logger *MainLogger) {
