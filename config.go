@@ -10,7 +10,6 @@ import (
 type Config struct {
 	Source       string
 	Level        misc.Level
-	ShowLogUUID  bool
 	Template     templates.Config
 	JSONSecurity jsonsecurity.Config
 	Writer       io.Writer
