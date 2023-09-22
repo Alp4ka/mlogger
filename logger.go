@@ -8,6 +8,7 @@ import (
 	"github.com/Alp4ka/mlogger/jsonsecurity"
 	"github.com/Alp4ka/mlogger/misc"
 	"github.com/Alp4ka/mlogger/templates"
+	"io"
 	"log/slog"
 	"os"
 	"sync"
@@ -122,9 +123,8 @@ func NewProduction(ctx context.Context, cfg Config, contacts ...contactpoints.Co
 	}
 	gw = gateway.CreateGateway().WithTemplate(tmpl).WithContactPoints(true, contacts...)
 
-	if cfg.Writer == nil {
-		cfg.Writer = _defaultWriter
-	}
+	// TODO: (???)
+	cfg.Writer = misc.Coalesce[io.Writer](cfg.Writer, _defaultWriter)
 
 	fields := field.FieldsFromContext(ctx)
 	if cfg.Source != "" {
@@ -139,7 +139,7 @@ func NewProduction(ctx context.Context, cfg Config, contacts ...contactpoints.Co
 		masker,
 		slog.New(slog.NewJSONHandler(cfg.Writer, &slog.HandlerOptions{
 			Level:       misc.SlogLevel(cfg.Level),
-			ReplaceAttr: misc.SlogReplaceAttr,
+			ReplaceAttr: misc.SlogReplaceAttr(),
 		})),
 	}, nil
 

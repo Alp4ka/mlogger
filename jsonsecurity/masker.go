@@ -4,12 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
-)
-
-var (
-	_globalMaskerMu = sync.RWMutex{}
-	_globalMasker   *Masker
 )
 
 // Masker struct allows you to use a single Masker object to manipulate json masking.
@@ -18,22 +12,6 @@ type Masker struct {
 	cfg Config
 
 	lowercaseTriggers map[string][]TriggerOpts
-}
-
-func GlobalMasker() *Masker {
-	var m *Masker
-
-	_globalMaskerMu.RLock()
-	m = _globalMasker
-	_globalMaskerMu.RUnlock()
-
-	return m
-}
-
-func ReplaceGlobals(masker *Masker) {
-	_globalMaskerMu.Lock()
-	_globalMasker = masker
-	_globalMaskerMu.Unlock()
 }
 
 // NewMasker returns a new Masker instance.
@@ -65,7 +43,6 @@ func NewMasker(cfg Config) (*Masker, error) {
 // Using PASSWORD label for "password" and EMAIL for "email" we will reach the next result:
 //
 // Output = `{"password": "*********", "email": "e******@example.com"}`
-// TODO(Gorkovets Roman): Definitely needs rework due to multiple serialization and deserialization. Inefficient af.
 func (m *Masker) Mask(data string) (string, error) {
 	var dataAny any
 

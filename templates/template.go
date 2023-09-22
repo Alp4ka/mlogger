@@ -10,6 +10,7 @@ const (
 	_tmplName = ""
 )
 
+// Template is a structure that represents template of a definite Mode.
 type Template struct {
 	Tmpl *template.Template
 	Mode misc.ParseMode

@@ -114,7 +114,7 @@ func Any(key string, value any) Field {
 // CallerFunc creates field with name of caller function (using shift specified in level argument).
 func CallerFunc(key string, level ...int) Field {
 	const (
-		defaultLevelShift = 2
+		defaultLevelShift = 1
 	)
 
 	var lvl int
